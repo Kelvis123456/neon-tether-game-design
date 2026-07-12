@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Tether - UX/UI Interactive Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- BACKGROUND DYNAMIC NEON GRID -->
+        <div class="cyber-grid"></div>
+        <div class="scanlines"></div>
+
+        <!-- SCREEN: SPLASH / INICIO -->
+        <section id="screen-splash" class="screen active">
+            <div class="glow-logo">
+                <span class="logo-top">NEON</span>
+                <span class="logo-bottom">TETHER</span>
+            </div>
+            <div class="loading-bar-container">
+                <div class="loading-bar"></div>
+            </div>
+            <p class="splash-status">LOADING CYBER SYSTEMS...</p>
+        </section>
+
+        <!-- SCREEN: MAIN MENU -->
+        <section id="screen-menu" class="screen">
+            <header class="menu-header">
+                <div class="player-profile">
+                    <span class="profile-icon">▲</span>
+                    <div class="profile-info">
+                        <span class="profile-name">PILOT_01</span>
+                        <span class="profile-level">LEVEL 5</span>
+                    </div>
+                </div>
+                <div class="currency-display">
+                    <span class="crystal-icon">💎</span>
+                    <span id="menu-crystal-count">1,240</span>
+                </div>
+            </header>
+
+            <div class="logo-small">NEON TETHER</div>
+
+            <div class="main-buttons">
+                <button id="btn-play-game" class="btn-primary-pulse">
+                    <div class="btn-inner">PLAY NODE</div>
+                </button>
+                <button id="btn-open-tutorial" class="btn-secondary">TUTORIAL PROTOCOL</button>
+            </div>
+
+            <nav class="bottom-nav">
+                <button id="btn-nav-shop" class="nav-item">
+                    <span class="nav-icon">🛒</span>
+                    <span class="nav-label">GRID SHOP</span>
+                </button>
+                <button id="btn-nav-achievements" class="nav-item">
+                    <span class="nav-icon">🏆</span>
+                    <span class="nav-label">LOGS</span>
+                </button>
+                <button id="btn-nav-events" class="nav-item">
+                    <span class="nav-icon">📅</span>
+                    <span class="nav-label">EVENTS</span>
+                </button>
+                <button id="btn-nav-settings" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-label">CONFIG</span>
+                </button>
+            </nav>
+        </section>
+
+        <!-- SCREEN: GAMEPLAY & HUD -->
+        <section id="screen-gameplay" class="screen">
+            <!-- HUD -->
+            <div id="hud">
+                <div class="hud-left">
+                    <div class="hud-label">DISTANCE</div>
+                    <div id="hud-score" class="hud-value">0m</div>
+                </div>
+                <div class="hud-center">
+                    <div id="hud-combo-container">
+                        <span id="hud-combo-multiplier">1.0x</span>
+                        <div class="combo-label">COMBO</div>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="hud-label">CRYSTALS</div>
+                    <div id="hud-crystals" class="hud-value">0</div>
+                </div>
+            </div>
+
+            <!-- SIMULATED GAME CANVAS AREA -->
+            <div id="game-canvas-area">
+                <div class="tunnel-wall left-wall"></div>
+                <div class="tunnel-wall right-wall"></div>
+
+                <!-- Particle Spheres and Tether Line -->
+                <div id="player-tether-container">
+                    <div id="player-tether-line"></div>
+                    <div id="sphere-left" class="tether-sphere"></div>
+                    <div id="sphere-right" class="tether-sphere"></div>
+                </div>
+
+                <!-- Interactive prompt to show control inputs -->
+                <div id="gameplay-prompt">HOLD SCREEN TO SPLIT<br>RELEASE TO MERGE</div>
+            </div>
+
+            <button id="btn-pause-game" class="btn-pause">⏸</button>
+        </section>
+
+        <!-- SCREEN: PAUSE OVERLAY -->
+        <div id="overlay-pause" class="overlay">
+            <div class="dialog">
+                <h2>NODE PAUSED</h2>
+                <div class="dialog-buttons">
+                    <button id="btn-resume" class="btn-primary">RESUME</button>
+                    <button id="btn-restart" class="btn-secondary">RESTART</button>
+                    <button id="btn-pause-menu" class="btn-secondary">ABANDON RUN</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: GAME OVER / DERROTA -->
+        <section id="screen-gameover" class="screen">
+            <div class="gameover-title">TETHER SHATTERED</div>
+            
+            <div class="stats-panel">
+                <div class="stat-row">
+                    <span>FINAL DISTANCE</span>
+                    <span id="go-distance">1,230m</span>
+                </div>
+                <div class="stat-row">
+                    <span>BEST DISTANCE</span>
+                    <span id="go-best-distance">2,450m</span>
+                </div>
+                <div class="stat-row">
+                    <span>CRYSTALS COLLECTED</span>
+                    <span id="go-crystals">+45</span>
+                </div>
+            </div>
+
+            <div class="gameover-buttons">
+                <!-- REWARDED AD OPTION -->
+                <button id="btn-rewarded-continue" class="btn-rewarded">
+                    <span class="btn-icon">⚡</span>
+                    <div class="btn-rewarded-text">
+                        <span>CONTINUE CORE</span>
+                        <small>WATCH AD (1 PER RUN)</small>
+                    </div>
+                </button>
+                
+                <button id="btn-retry" class="btn-primary">RECHARGE TETHER</button>
+                <button id="btn-gameover-menu" class="btn-secondary">RETURN TO GRID</button>
+            </div>
+        </section>
+
+        <!-- SCREEN: SHOP / TIENDA / INVENTARIO -->
+        <section id="screen-shop" class="screen">
+            <header class="screen-header">
+                <button class="btn-back btn-back-to-menu">◀</button>
+                <h2>GRID SHOP</h2>
+                <div class="currency-display">
+                    <span>💎</span>
+                    <span class="shop-crystal-count">1,240</span>
+                </div>
+            </header>
+
+            <!-- TABS FOR INVENTORY & IAP -->
+            <div class="shop-tabs">
+                <button id="tab-tethers" class="shop-tab active">TETHERS</button>
+                <button id="tab-cores" class="shop-tab">CORES</button>
+                <button id="tab-currency" class="shop-tab">UPGRADES</button>
+            </div>
+
+            <!-- TAB CONTENT: TETHERS (INVENTORY/SHOP) -->
+            <div id="shop-content-tethers" class="shop-grid active">
+                <div class="shop-item owned selected" data-id="default">
+                    <div class="item-preview tether-default"></div>
+                    <span class="item-name">NEON PLASMA</span>
+                    <span class="item-status">ACTIVE</span>
+                </div>
+                <div class="shop-item" data-id="laser" data-price="500">
+                    <div class="item-preview tether-laser"></div>
+                    <span class="item-name">RUBY LASER</span>
+                    <span class="item-price">💎 500</span>
+                </div>
+                <div class="shop-item" data-id="plasma" data-price="800">
+                    <div class="item-preview tether-plasma"></div>
+                    <span class="item-name">CORONA WAVE</span>
+                    <span class="item-price">💎 800</span>
+                </div>
+                <div class="shop-item premium" data-id="rainbow" data-price="0.99">
+                    <div class="item-preview tether-rainbow"></div>
+                    <span class="item-name">RAINBOW ARC</span>
+                    <span class="item-price">$0.99 USD</span>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT: CORES -->
+            <div id="shop-content-cores" class="shop-grid">
+                <div class="shop-item owned selected" data-id="core-default">
+                    <div class="item-preview core-default"></div>
+                    <span class="item-name">STANDARD NODE</span>
+                    <span class="item-status">ACTIVE</span>
+                </div>
+                <div class="shop-item" data-id="core-shield" data-price="400">
+                    <div class="item-preview core-shield"></div>
+                    <span class="item-name">AEGIS CORE</span>
+                    <span class="item-price">💎 400</span>
+                </div>
+                <div class="shop-item premium" data-id="core-galaxy" data-price="0.99">
+                    <div class="item-preview core-galaxy"></div>
+                    <span class="item-name">NEBULA CORE</span>
+                    <span class="item-price">$0.99 USD</span>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT: UPGRADES / IAPS -->
+            <div id="shop-content-currency" class="shop-grid">
+                <div class="shop-item upgrade-item" data-id="double-crystals" data-price="1000">
+                    <div class="item-icon-art">💥</div>
+                    <span class="item-name">CRYSTAL VACUUM</span>
+                    <small>Increases collect radius by 20%</small>
+                    <span class="item-price">💎 1,000</span>
+                </div>
+                <div class="shop-item upgrade-item premium-vip" data-id="ad-removal" data-price="2.99">
+                    <div class="item-icon-art">⚡</div>
+                    <span class="item-name">SYSTEM BYPASS</span>
+                    <small>Removes ads & provides 1 free continue per run</small>
+                    <span class="item-price">$2.99 USD</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN: ACHIEVEMENTS / LOGROS -->
+        <section id="screen-achievements" class="screen">
+            <header class="screen-header">
+                <button class="btn-back btn-back-to-menu">◀</button>
+                <h2>SYSTEM ACHIEVEMENTS</h2>
+                <div></div>
+            </header>
+
+            <div class="achievements-list">
+                <div class="achievement-card completed">
+                    <div class="ach-badge">🚀</div>
+                    <div class="ach-info">
+                        <h3>FIRST TRANSMISSION</h3>
+                        <p>Complete the navigation tutorial protocol.</p>
+                        <div class="ach-progress-bar"><div class="ach-progress" style="width: 100%;"></div></div>
+                    </div>
+                    <span class="ach-reward">RECLAIMED</span>
+                </div>
+                <div class="achievement-card completed">
+                    <div class="ach-badge">💎</div>
+                    <div class="ach-info">
+                        <h3>CRYSTAL ENERGY</h3>
+                        <p>Collect 100 Volt Crystals in a single flight.</p>
+                        <div class="ach-progress-bar"><div class="ach-progress" style="width: 100%;"></div></div>
+                    </div>
+                    <span class="ach-reward">RECLAIMED</span>
+                </div>
+                <div class="achievement-card">
+                    <div class="ach-badge">🎯</div>
+                    <div class="ach-info">
+                        <h3>STRIKE THE TETHER</h3>
+                        <p>Pass 50 obstacles in a single flight without split lock.</p>
+                        <div class="ach-progress-bar"><div class="ach-progress" style="width: 40%;"></div></div>
+                    </div>
+                    <span class="ach-reward">💎 200</span>
+                </div>
+                <div class="achievement-card locked">
+                    <div class="ach-badge">👑</div>
+                    <div class="ach-info">
+                        <h3>CYBER MASTER</h3>
+                        <p>Unlock all tethers and upgrade modules.</p>
+                        <div class="ach-progress-bar"><div class="ach-progress" style="width: 10%;"></div></div>
+                    </div>
+                    <span class="ach-reward">🔒 UNLOCKED</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN: CONFIGURATION / SETTINGS -->
+        <section id="screen-settings" class="screen">
+            <header class="screen-header">
+                <button class="btn-back btn-back-to-menu">◀</button>
+                <h2>CONFIGURATION</h2>
+                <div></div>
+            </header>
+
+            <div class="settings-list">
+                <div class="setting-item">
+                    <span>CYBER AUDIOS (MUSIC)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="setting-music" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>TACTILE DRIVES (HAPTICS)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="setting-haptics" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>COLOR BLIND MODE</span>
+                    <select id="setting-colorblind">
+                        <option value="none">STANDARD NEON</option>
+                        <option value="protan">PROTANOPIA (R/B)</option>
+                        <option value="deuteran">DEUTERANOPIA (G/B)</option>
+                    </select>
+                </div>
+                <div class="setting-item font-size-item">
+                    <span>INTERFACE SIZE</span>
+                    <div class="btn-group">
+                        <button class="btn-small active">STANDARD</button>
+                        <button class="btn-small">LARGE</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="about-section">
+                <p>NEON TETHER v1.0.0</p>
+                <p>DESIGNED BY ANTIGRAVITY STUDIOS</p>
+                <p class="licensing">All mechanical components patented. Pure gameplay design. No forced advertisements.</p>
+            </div>
+        </section>
+
+        <!-- SCREEN: EVENTS / EVENTOS -->
+        <section id="screen-events" class="screen">
+            <header class="screen-header">
+                <button class="btn-back btn-back-to-menu">◀</button>
+                <h2>LIVE MATRIX EVENTS</h2>
+                <div></div>
+            </header>
+
+            <div class="event-banner">
+                <div class="event-countdown">RESET IN: 14h 23m</div>
+                <h3>DAILY RUN CHALLENGE</h3>
+                <p>Navigate a high-velocity procedurally generated grid matrix. Competitors scored on global leaderboard nodes.</p>
+            </div>
+
+            <div class="leaderboard-panel">
+                <h4>GLOBAL LEADERBOARD (TODAY)</h4>
+                <div class="leaderboard-list">
+                    <div class="leader-row rank-1">
+                        <span class="rank">#1</span>
+                        <span class="player">MATRIX_CRASHER</span>
+                        <span class="score">4,890m</span>
+                    </div>
+                    <div class="leader-row rank-2">
+                        <span class="rank">#2</span>
+                        <span class="player">CYBER_PULSE</span>
+                        <span class="score">4,120m</span>
+                    </div>
+                    <div class="leader-row rank-3">
+                        <span class="rank">#3</span>
+                        <span class="player">TETHER_GOD</span>
+                        <span class="score">3,980m</span>
+                    </div>
+                    <div class="leader-row player-row">
+                        <span class="rank">#42</span>
+                        <span class="player">PILOT_01 (YOU)</span>
+                        <span class="score">2,450m</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN: INTERACTIVE TUTORIAL -->
+        <section id="screen-tutorial" class="screen">
+            <div id="tutorial-hud">
+                <span class="tut-step-label">TUTORIAL STEP 1/3</span>
+                <h3 id="tutorial-instruction">PRESS AND HOLD TO SPLIT CORE</h3>
+            </div>
+
+            <div id="tutorial-canvas">
+                <div class="tunnel-wall left-wall"></div>
+                <div class="tunnel-wall right-wall"></div>
+                
+                <div id="tutorial-tether-container">
+                    <div id="tutorial-tether-line"></div>
+                    <div id="tut-sphere-left" class="tether-sphere"></div>
+                    <div id="tut-sphere-right" class="tether-sphere"></div>
+                </div>
+
+                <!-- Overlay indicator -->
+                <div id="tut-hand-indicator" class="hand-anim"></div>
+            </div>
+
+            <div class="tutorial-controls">
+                <button id="btn-skip-tutorial" class="btn-secondary">ABANDON SIMULATION</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- WEB AUDIO SYNTHESIZER AND INTERACTIVE NAVIGATION CONTROLS -->
+    <script src="app.js"></script>
+</body>
+</html>
