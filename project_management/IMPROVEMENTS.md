@@ -1,4 +1,4 @@
-# IMPROVEMENTS LOG: Antigravity Game Project
+# IMPROVEMENTS LOG: Neon Tether
 
 This document tracks planned future features, post-launch improvements, and LiveOps ideas.
 

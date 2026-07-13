@@ -578,13 +578,13 @@ body {
 .obstacle.center-pillar {
     border-color: var(--neon-magenta);
     box-shadow: 0 0 15px var(--neon-magenta);
-    background: rgba(255, 0, 127, 0.15);
+    background: color-mix(in srgb, var(--neon-magenta) 15%, transparent);
 }
 
 .obstacle.side-pillar {
     border-color: var(--neon-cyan);
     box-shadow: 0 0 15px var(--neon-cyan);
-    background: rgba(0, 240, 255, 0.15);
+    background: color-mix(in srgb, var(--neon-cyan) 15%, transparent);
 }
 
 .crystal-node {

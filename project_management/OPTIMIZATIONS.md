@@ -1,4 +1,6 @@
-# OPTIMIZATIONS LOG: Antigravity Game Project
+# OPTIMIZATIONS LOG: Neon Tether
+
+*Note: these targets apply to the Phase 10 Godot production build. The current browser prototype is a UX/feel-validation tool, not optimized against these numbers.*
 
 This document tracks performance targets, profiling sessions, and code/art optimizations.
 

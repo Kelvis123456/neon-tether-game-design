@@ -5,6 +5,9 @@ class CyberSynth {
     constructor() {
         this.ctx = null;
         this.enabled = true;
+        this.bgmGain = null;
+        this.bgmIntervalId = null;
+        this.bgmStep = 0;
     }
 
     init() {
@@ -15,6 +18,56 @@ class CyberSynth {
     resume() {
         if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
+        }
+    }
+
+    startBGM() {
+        if (!this.enabled) return;
+        this.init(); this.resume();
+        if (this.bgmIntervalId) return; // already running
+
+        this.bgmGain = this.ctx.createGain();
+        this.bgmGain.gain.value = 0.05;
+        this.bgmGain.connect(this.ctx.destination);
+
+        // Minor arpeggio loop (A minor pentatonic-ish) — ambient cyber pad
+        const pattern = [220.00, 261.63, 329.63, 392.00, 329.63, 261.63];
+        const stepMs = 260;
+
+        const playStep = () => {
+            if (!this.enabled || !this.ctx) return;
+            const freq = pattern[this.bgmStep % pattern.length];
+            this.bgmStep++;
+
+            const osc = this.ctx.createOscillator();
+            const filter = this.ctx.createBiquadFilter();
+            const noteGain = this.ctx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(900, this.ctx.currentTime);
+
+            noteGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+            noteGain.gain.linearRampToValueAtTime(1, this.ctx.currentTime + 0.03);
+            noteGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + (stepMs / 1000) * 0.9);
+
+            osc.connect(filter);
+            filter.connect(noteGain);
+            noteGain.connect(this.bgmGain);
+
+            osc.start();
+            osc.stop(this.ctx.currentTime + stepMs / 1000);
+        };
+
+        playStep();
+        this.bgmIntervalId = setInterval(playStep, stepMs);
+    }
+
+    stopBGM() {
+        if (this.bgmIntervalId) {
+            clearInterval(this.bgmIntervalId);
+            this.bgmIntervalId = null;
         }
     }
 
@@ -130,6 +183,8 @@ const state = {
     runCrystals: 0,
     activeTether: 'default',
     activeCore: 'core-default',
+    ownedItems: ['default', 'core-default'],
+    runHistory: [],
     colorblind: 'none',
     musicEnabled: true,
     hapticsEnabled: true,
@@ -177,8 +232,30 @@ const dom = {
     tutorialCanvas: document.getElementById('tutorial-canvas'),
     tutInstruction: document.getElementById('tutorial-instruction'),
     tutHand: document.getElementById('tut-hand-indicator'),
-    appContainer: document.getElementById('app-container')
+    appContainer: document.getElementById('app-container'),
+    leaderboardList: document.getElementById('leaderboard-list')
 };
+
+// --- LEADERBOARD (local, driven by real run history) ---
+function renderLeaderboard() {
+    const npcScores = [
+        { name: 'MATRIX_CRASHER', score: 4890 },
+        { name: 'CYBER_PULSE', score: 4120 },
+        { name: 'TETHER_GOD', score: 3980 }
+    ];
+    const combined = npcScores.map(n => ({ ...n, isPlayer: false }));
+    combined.push({ name: 'PILOT_01 (YOU)', score: state.bestScore, isPlayer: true });
+    combined.sort((a, b) => b.score - a.score);
+
+    dom.leaderboardList.innerHTML = '';
+    combined.forEach((entry, idx) => {
+        const rank = idx + 1;
+        const row = document.createElement('div');
+        row.className = 'leader-row' + (entry.isPlayer ? ' player-row' : ` rank-${rank}`);
+        row.innerHTML = `<span class="rank">#${rank}</span><span class="player">${entry.name}</span><span class="score">${entry.score.toLocaleString()}m</span>`;
+        dom.leaderboardList.appendChild(row);
+    });
+}
 
 // --- NAVIGATION SYSTEM ---
 function showScreen(screenId) {
@@ -213,6 +290,7 @@ document.querySelectorAll('.btn-back-to-menu').forEach(btn => {
 // Splash loading timeout
 setTimeout(() => {
     showScreen('screen-menu');
+    synth.startBGM();
 }, 3000);
 
 // Menu buttons
@@ -270,6 +348,7 @@ dom.shopItems.forEach(item => {
             }
             item.classList.add('selected');
             applySkinStyles();
+            saveProgress();
         } else {
             // Buy item simulation
             const parsedPrice = parseFloat(price);
@@ -277,6 +356,7 @@ dom.shopItems.forEach(item => {
                 // IAP buying trigger
                 alert(`Redirecting to App Store for security payment of ${price}... Purchase successful!`);
                 item.classList.add('owned', 'selected');
+                if (!state.ownedItems.includes(id)) state.ownedItems.push(id);
                 if (isTether) {
                     state.activeTether = id;
                     document.querySelectorAll('#shop-content-tethers .shop-item').forEach(i => i.classList.remove('selected'));
@@ -286,11 +366,13 @@ dom.shopItems.forEach(item => {
                 }
                 item.classList.add('selected');
                 applySkinStyles();
+                saveProgress();
             } else if (state.crystals >= parsedPrice) {
                 state.crystals -= parsedPrice;
                 updateCrystalsUI();
                 item.classList.add('owned', 'selected');
                 item.querySelector('.item-price').textContent = "ACTIVE";
+                if (!state.ownedItems.includes(id)) state.ownedItems.push(id);
                 if (isTether) {
                     state.activeTether = id;
                     document.querySelectorAll('#shop-content-tethers .shop-item').forEach(i => i.classList.remove('selected'));
@@ -300,6 +382,7 @@ dom.shopItems.forEach(item => {
                 }
                 item.classList.add('selected');
                 applySkinStyles();
+                saveProgress();
             } else {
                 alert("INSUFFICIENT VOLT CRYSTALS!");
             }
@@ -328,45 +411,72 @@ dom.shopTabs.forEach(tab => {
 document.getElementById('setting-music').addEventListener('change', (e) => {
     state.musicEnabled = e.target.checked;
     synth.enabled = state.musicEnabled;
+    if (state.musicEnabled) {
+        synth.startBGM();
+    } else {
+        synth.stopBGM();
+    }
+    saveProgress();
 });
 document.getElementById('setting-haptics').addEventListener('change', (e) => {
     state.hapticsEnabled = e.target.checked;
+    saveProgress();
 });
 document.getElementById('setting-colorblind').addEventListener('change', (e) => {
     state.colorblind = e.target.value;
     applyColorblindStyles();
+    saveProgress();
 });
 
 // Apply styles
+function hexToRgb(hex) {
+    const clean = hex.replace('#', '');
+    const bigint = parseInt(clean, 16);
+    return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+}
+
+function setNeonColors(cyanHex, magentaHex) {
+    const container = dom.appContainer;
+    const cyanRgb = hexToRgb(cyanHex);
+    const magentaRgb = hexToRgb(magentaHex);
+    container.style.setProperty('--neon-cyan', cyanHex);
+    container.style.setProperty('--neon-magenta', magentaHex);
+    // Glows are static rgba() values in :root, not derived from --neon-cyan/magenta —
+    // without this they'd stay the original hue under colorblind modes or tether skins.
+    container.style.setProperty('--glow-cyan', `0 0 15px rgba(${cyanRgb.r}, ${cyanRgb.g}, ${cyanRgb.b}, 0.6), 0 0 30px rgba(${cyanRgb.r}, ${cyanRgb.g}, ${cyanRgb.b}, 0.3)`);
+    container.style.setProperty('--glow-magenta', `0 0 15px rgba(${magentaRgb.r}, ${magentaRgb.g}, ${magentaRgb.b}, 0.6), 0 0 30px rgba(${magentaRgb.r}, ${magentaRgb.g}, ${magentaRgb.b}, 0.3)`);
+}
+
 function applySkinStyles() {
     // Dynamic styles depending on skin selected
     const container = dom.appContainer;
     container.className = '';
+
+    if (state.colorblind !== 'none') {
+        applyColorblindStyles();
+        return;
+    }
+
     if (state.activeTether === 'laser') {
-        container.style.setProperty('--neon-magenta', '#ff003c');
+        setNeonColors('#00f0ff', '#ff003c');
         container.style.setProperty('--tether-width', '4px');
     } else if (state.activeTether === 'plasma') {
-        container.style.setProperty('--neon-cyan', '#00ffaa');
+        setNeonColors('#00ffaa', '#ff007f');
         container.style.setProperty('--tether-width', '3px');
     } else if (state.activeTether === 'rainbow') {
-        container.style.setProperty('--neon-cyan', '#ff00ff');
-        container.style.setProperty('--neon-magenta', '#00ffff');
+        setNeonColors('#ff00ff', '#00ffff');
         container.style.setProperty('--tether-width', '2px');
     } else {
-        container.style.setProperty('--neon-cyan', '#00f0ff');
-        container.style.setProperty('--neon-magenta', '#ff007f');
+        setNeonColors('#00f0ff', '#ff007f');
         container.style.setProperty('--tether-width', '2px');
     }
 }
 
 function applyColorblindStyles() {
-    const container = dom.appContainer;
     if (state.colorblind === 'protan') {
-        container.style.setProperty('--neon-cyan', '#0055ff');
-        container.style.setProperty('--neon-magenta', '#ffaa00');
+        setNeonColors('#0055ff', '#ffaa00');
     } else if (state.colorblind === 'deuteran') {
-        container.style.setProperty('--neon-cyan', '#00aaff');
-        container.style.setProperty('--neon-magenta', '#ffdd00');
+        setNeonColors('#00aaff', '#ffdd00');
     } else {
         applySkinStyles();
     }
@@ -375,6 +485,76 @@ function applyColorblindStyles() {
 function updateCrystalsUI() {
     dom.menuCrystalCount.textContent = state.crystals.toLocaleString();
     dom.shopCrystalCounts.forEach(el => el.textContent = state.crystals.toLocaleString());
+}
+
+// --- LOCAL PERSISTENCE (localStorage) ---
+const SAVE_KEY = 'neonTetherSave';
+
+function saveProgress() {
+    const payload = {
+        crystals: state.crystals,
+        bestScore: state.bestScore,
+        activeTether: state.activeTether,
+        activeCore: state.activeCore,
+        ownedItems: state.ownedItems,
+        runHistory: state.runHistory,
+        colorblind: state.colorblind,
+        musicEnabled: state.musicEnabled,
+        hapticsEnabled: state.hapticsEnabled
+    };
+    try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    } catch (err) {
+        // Storage unavailable (private mode, quota) — fail silently, progress stays in-memory only.
+    }
+}
+
+function loadProgress() {
+    let saved = null;
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (raw) saved = JSON.parse(raw);
+    } catch (err) {
+        saved = null;
+    }
+    if (!saved) return;
+
+    state.crystals = typeof saved.crystals === 'number' ? saved.crystals : state.crystals;
+    state.bestScore = typeof saved.bestScore === 'number' ? saved.bestScore : state.bestScore;
+    state.activeTether = saved.activeTether || state.activeTether;
+    state.activeCore = saved.activeCore || state.activeCore;
+    state.ownedItems = Array.isArray(saved.ownedItems) ? saved.ownedItems : state.ownedItems;
+    state.runHistory = Array.isArray(saved.runHistory) ? saved.runHistory : state.runHistory;
+    state.colorblind = saved.colorblind || state.colorblind;
+    state.musicEnabled = typeof saved.musicEnabled === 'boolean' ? saved.musicEnabled : state.musicEnabled;
+    state.hapticsEnabled = typeof saved.hapticsEnabled === 'boolean' ? saved.hapticsEnabled : state.hapticsEnabled;
+
+    updateCrystalsUI();
+
+    // Re-apply ownership/selection to the shop DOM
+    dom.shopItems.forEach(item => {
+        const id = item.dataset.id;
+        if (state.ownedItems.includes(id)) {
+            item.classList.add('owned');
+            const priceEl = item.querySelector('.item-price');
+            if (priceEl) priceEl.textContent = 'ACTIVE';
+        }
+        if (id === state.activeTether || id === state.activeCore) {
+            item.classList.add('selected');
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+
+    // Re-apply settings toggles
+    document.getElementById('setting-music').checked = state.musicEnabled;
+    document.getElementById('setting-haptics').checked = state.hapticsEnabled;
+    document.getElementById('setting-colorblind').value = state.colorblind;
+    synth.enabled = state.musicEnabled;
+
+    applySkinStyles();
+    applyColorblindStyles();
+    renderLeaderboard();
 }
 
 // --- GAMEPLAY CODE ENGINE (SIMULATION) ---
@@ -620,11 +800,16 @@ function handlePlayerCrash() {
         state.bestScore = dist;
     }
 
+    state.runHistory.push(dist);
+    if (state.runHistory.length > 20) state.runHistory.shift();
+
     dom.goDistance.textContent = `${dist}m`;
     dom.goBestDistance.textContent = `${state.bestScore}m`;
     dom.goCrystals.textContent = `+${state.runCrystals}`;
 
     updateCrystalsUI();
+    saveProgress();
+    renderLeaderboard();
 
     setTimeout(() => {
         showScreen('screen-gameover');
@@ -715,3 +900,7 @@ styleSheet.innerText = `
 }
 `;
 document.head.appendChild(styleSheet);
+
+// --- INIT: restore saved progress (crystals, skins, settings, run history) ---
+renderLeaderboard();
+loadProgress();
