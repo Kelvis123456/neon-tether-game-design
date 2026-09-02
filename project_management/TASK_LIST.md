@@ -5,15 +5,16 @@ This list tracks the concrete tasks to complete the project, categorized by stat
 ## Active Phase: Phase 10 (Full Development — Godot port)
 
 ### To Do (Pendiente)
-- [ ] Set up Godot 4 project skeleton per `docs/architecture.md` (GameLoop, GamePlayCore, AudioSynthesizer, Renderer2D, HapticController, SaveSystem).
-- [ ] Port split/merge spring-easing mechanic and collision rules from `prototype/app.js` to GDScript.
+- [ ] Full menu/shop/settings/achievements/events UI in Godot (currently a bare PLAY-button stub — the real screens from `prototype/` haven't been rebuilt as Godot UI yet).
 - [ ] Implement daily missions system (currently only a design idea, not built anywhere).
 - [ ] Integrate real IAP and rewarded-ad SDKs (prototype only simulates these with `alert()`).
-- [ ] Implement AES-256 encrypted save system per `docs/architecture.md` (prototype uses plain localStorage).
+- [ ] Object pooling for obstacles/crystals per `OPTIMIZATIONS.md` (current port allocates/frees per spawn, matching the prototype's DOM-node behavior, not yet the pooled architecture).
 - [ ] Produce Android & iOS builds for Phase 11 QA.
+- [ ] Open `godot/project.godot` in the real Godot 4 editor and play-test — the skeleton below was authored by hand (no editor available in this environment) and has not been run yet. Report any parse/runtime errors back for a fast follow-up fix.
 
 ### In Progress (En Progreso)
-*Nothing currently in progress — Phase 10 has not started.*
+- [ ] Godot 4 project skeleton (`godot/`) — done: autoloads (`GameState`, `SaveSystem`, `AudioSynth`), AES-256 encrypted save via Godot's built-in `FileAccess.open_encrypted_with_pass`, and a minimal Menu → Gameplay → GameOver state machine. Still needs the real menu/shop UI (see To Do) and an in-editor test pass.
+- [ ] Split/merge spring-easing mechanic and collision rules ported from `prototype/app.js` to `godot/scripts/gameplay.gd` — logic and constants carried over 1:1 (same spring-lerp factor, obstacle/crystal geometry, graze band), plus BUG-004 fixed along the way (see `BUGS.md`). Unverified in the actual editor yet (see To Do).
 
 ### Done (Completado)
 - [x] Market research, ideation, concept validation (Phases 1-3).

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added (Phase 10 — Godot port started)
+- Godot 4 project skeleton under `godot/`: `project.godot` (portrait 450x800 design viewport, `canvas_items`/`keep` stretch), and autoload singletons `SaveSystem`, `GameState`, `AudioSynth`.
+- Core split/merge spring-easing mechanic, procedural obstacle/crystal spawning, and collision/graze rules ported from `prototype/app.js` to `godot/scripts/gameplay.gd`, constants carried over unscaled from the prototype's CSS/JS.
+- Procedural SFX/BGM in `godot/autoload/AudioSynth.gd` (split/merge/graze/crash tones + ambient arpeggio loop) via `AudioStreamGenerator`, replacing the prototype's Web Audio API code.
+- AES-256 encrypted save file (`godot/autoload/SaveSystem.gd`, via Godot's `FileAccess.open_encrypted_with_pass`), replacing the prototype's plain `localStorage`.
+- Minimal Menu → Gameplay → GameOver state machine (`godot/scripts/main.gd`) so the ported mechanic is actually playable end-to-end, pending the real menu/shop/settings UI.
+
+### Fixed
+- BUG-004: a graze inside the collision band could fire `triggerGraze()`/bump the combo multiple times per obstacle in `prototype/app.js`; fixed in the Godot port by resolving each obstacle once. See `BUGS.md`.
+
 ### Added
 - Design documentation for Phases 1-9: market research, ideation, concept validation, GDD, art direction, technology selection (Godot 4), architecture, and vertical slice report.
 - Full browser prototype (`prototype/`) covering every screen: splash, menu, tutorial, gameplay, pause, game over, shop, achievements, settings, events.

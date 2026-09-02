@@ -15,7 +15,7 @@ This roadmap details the planned stages for Neon Tether, an original mobile rhyt
 | **Phase 7** | Engine & Technology Selection | ✅ Done — Godot 4 selected |
 | **Phase 8** | Technical Architecture Design | ✅ Done |
 | **Phase 9** | Vertical Slice Development | ✅ Done — validated in browser prototype |
-| **Phase 10** | Full Development (Godot production build) | ⏳ Pending |
+| **Phase 10** | Full Development (Godot production build) | 🔧 In Progress |
 | **Phase 11** | QA & Polishing | ⏳ Pending |
 
 ---
@@ -61,10 +61,15 @@ This roadmap details the planned stages for Neon Tether, an original mobile rhyt
 - [x] Validate the core split/merge feel, spring easing tuning, and audio envelopes in the browser prototype.
 - [x] Deliver: **Vertical Slice Report** (`docs/phase_9_vertical_slice.md`) + working prototype with real persistence (localStorage), background music, and a local leaderboard.
 
-### Phase 10: Full Development — **Pending**
-- [ ] Port the validated core loop from the browser prototype to Godot 4 (GDScript), per `docs/technology_selection.md` and `docs/architecture.md`.
-- [ ] Implement daily missions, real IAP/rewarded-ad SDK integration, AES-256 save encryption.
+### Phase 10: Full Development — **In Progress**
+- [x] Godot 4 project skeleton (`godot/`): autoloads for `GameState`/`SaveSystem`/`AudioSynth`, matching the `AppStateMachine`/`SaveSystem` roles from `docs/architecture.md`.
+- [x] Port the validated core loop from the browser prototype to Godot 4 (GDScript) — `godot/scripts/gameplay.gd`.
+- [x] AES-256 save encryption, via Godot's built-in `FileAccess.open_encrypted_with_pass` (`godot/autoload/SaveSystem.gd`).
+- [ ] Full menu/shop/settings/achievements/events UI (still a bare stub — see `TASK_LIST.md`).
+- [ ] Daily missions, real IAP/rewarded-ad SDK integration.
+- [ ] Object pooling for obstacles/crystals per `OPTIMIZATIONS.md`.
 - [ ] Android & iOS builds.
+- [ ] First real editor test pass — the skeleton was authored by hand outside the Godot editor and hasn't been opened/run yet.
 
 ### Phase 11: QA & Optimization — **Pending**
 - [ ] Rigorous testing for bugs, memory leaks, performance bottlenecks, battery drain on target devices (see `OPTIMIZATIONS.md`).

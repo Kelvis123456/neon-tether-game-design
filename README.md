@@ -23,7 +23,7 @@ Este repositorio es un **documento de pre-producción completo**, no un juego te
 | 7 — Selección de tecnología | Godot 4 (GDScript) | ✅ |
 | 8 — Arquitectura técnica | GameLoop, GamePlayCore, SaveSystem, etc. | ✅ |
 | 9 — Vertical Slice | Spring easing tuneado + **prototipo jugable real** | ✅ |
-| 10 — Desarrollo completo (port a Godot) | — | Pendiente |
+| 10 — Desarrollo completo (port a Godot) | Esqueleto Godot 4, mecánica core, guardado AES-256 | 🔧 En progreso |
 | 11 — QA y lanzamiento | — | Pendiente |
 
 ## What's here
@@ -31,14 +31,19 @@ Este repositorio es un **documento de pre-producción completo**, no un juego te
 - **`docs/`** — full design process: market research, ideation, concept validation, complete Game Design Document, art direction, technology selection (Godot 4), architecture, and the vertical-slice report.
 - **`project_management/`** — roadmap, task list, decisions log, risks, bugs, changelog, and optimization notes kept during design.
 - **`prototype/`** — a working browser prototype (HTML/CSS/JS) implementing the full core loop: split/merge tether mechanic, Volt Crystal collection, "Grazed" combo, shop with real skin/core selection, synthesized SFX + background music, `localStorage` persistence, and a local leaderboard.
+- **`godot/`** — the Phase 10 Godot 4 production port: project skeleton, the split/merge core loop ported to GDScript, procedural audio, and an AES-256 encrypted save file. Menu/shop/settings UI, daily missions, real IAP/ad SDKs, and mobile builds are still pending — see `project_management/TASK_LIST.md`.
 
 ## Running the prototype
 
 Open `prototype/index.html` in a browser — no build step required.
 
+## Running the Godot port
+
+Open `godot/project.godot` in Godot 4.3+ and press Play. **Note:** this skeleton was authored by hand without access to the Godot editor, so it hasn't been opened/run yet — if it fails to parse or hits a runtime error, that's the first thing to fix.
+
 ## Próximos pasos (Phase 10-11)
 
-El port real a Godot 4 (ver `docs/technology_selection.md` y `docs/architecture.md`) para tener un build móvil instalable no ha comenzado — queda fuera del alcance de esta fase de diseño, igual que en los otros proyectos de este portfolio (PHASE, SKIM).
+El port a Godot 4 (ver `docs/technology_selection.md` y `docs/architecture.md`) empezó en `godot/`: esqueleto del proyecto, mecánica core portada, guardado cifrado. Falta la UI real (menú/tienda/logros/eventos), misiones diarias, SDKs de IAP/anuncios reales, y los builds de Android/iOS — ver `project_management/ROADMAP.md`.
 
 ---
 
