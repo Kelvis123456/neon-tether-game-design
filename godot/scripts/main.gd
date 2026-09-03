@@ -83,15 +83,18 @@ func _show_gameover(distance: int, crystals_collected: int) -> void:
 	result.add_theme_color_override("font_color", Color("#ff007f"))
 	result.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	result.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	result.position = Vector2(-200, 280)
-	result.custom_minimum_size = Vector2(400, 120)
+	result.position = Vector2(-200, 260)
+	result.custom_minimum_size = Vector2(400, 140)
 	_gameover_layer.add_child(result)
 
+	# Positioned to clear the result label's reserved box (260 to 400) below,
+	# not just its text — a first live playtest showed RETRY rendering on top
+	# of the result text because these two boxes overlapped by design.
 	var retry_btn := Button.new()
 	retry_btn.text = "RETRY"
 	retry_btn.custom_minimum_size = Vector2(200, 56)
 	retry_btn.set_anchors_preset(Control.PRESET_CENTER)
-	retry_btn.position = Vector2(-100, -80)
+	retry_btn.position = Vector2(-100, 20)
 	retry_btn.pressed.connect(func():
 		_clear_gameover()
 		_start_game()
@@ -102,7 +105,7 @@ func _show_gameover(distance: int, crystals_collected: int) -> void:
 	menu_btn.text = "MENU"
 	menu_btn.custom_minimum_size = Vector2(200, 56)
 	menu_btn.set_anchors_preset(Control.PRESET_CENTER)
-	menu_btn.position = Vector2(-100, -10)
+	menu_btn.position = Vector2(-100, 90)
 	menu_btn.pressed.connect(func():
 		_clear_gameover()
 		_show_menu()
