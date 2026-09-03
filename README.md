@@ -23,7 +23,7 @@ Este repositorio es un **documento de pre-producción completo**, no un juego te
 | 7 — Selección de tecnología | Godot 4 (GDScript) | ✅ |
 | 8 — Arquitectura técnica | GameLoop, GamePlayCore, SaveSystem, etc. | ✅ |
 | 9 — Vertical Slice | Spring easing tuneado + **prototipo jugable real** | ✅ |
-| 10 — Desarrollo completo (port a Godot) | Esqueleto, mecánica core, guardado AES-256, UI completa (menú/tienda/logros/config/eventos/tutorial), misiones diarias, build debug de Android. Falta IAP real, build de iOS, y confirmar renderizado en un dispositivo real | 🔧 En progreso |
+| 10 — Desarrollo completo (port a Godot) | Esqueleto, mecánica core, guardado AES-256, UI completa (menú/tienda/logros/config/eventos/tutorial), misiones diarias, build debug de Android **jugado y confirmado en un emulador con GPU real**. Falta IAP real, build de iOS, y una confirmación final en dispositivo físico | 🔧 En progreso |
 | 11 — QA y lanzamiento | — | Pendiente |
 
 ## What's here
@@ -31,7 +31,7 @@ Este repositorio es un **documento de pre-producción completo**, no un juego te
 - **`docs/`** — full design process: market research, ideation, concept validation, complete Game Design Document, art direction, technology selection (Godot 4), architecture, and the vertical-slice report.
 - **`project_management/`** — roadmap, task list, decisions log, risks, bugs, changelog, and optimization notes kept during design.
 - **`prototype/`** — a working browser prototype (HTML/CSS/JS) implementing the full core loop: split/merge tether mechanic, Volt Crystal collection, "Grazed" combo, shop with real skin/core selection, synthesized SFX + background music, `localStorage` persistence, and a local leaderboard.
-- **`godot/`** — the Phase 10 Godot 4 production port: the split/merge core loop, procedural audio, an AES-256 encrypted save file, and a full Menu / Grid Shop / Achievements / Configuration / Live Matrix Events / Tutorial UI with real daily missions. Verified running in Godot 4.7.2, including a real signed Android debug build. Real IAP/ad SDKs, an iOS build, and on-device rendering confirmation are still pending — see `project_management/TASK_LIST.md`.
+- **`godot/`** — the Phase 10 Godot 4 production port: the split/merge core loop, procedural audio, an AES-256 encrypted save file, and a full Menu / Grid Shop / Achievements / Configuration / Live Matrix Events / Tutorial UI with real daily missions. Verified running in Godot 4.7.2 on desktop and, as a signed Android debug build, actually played on a GPU-accelerated emulator. Real IAP/ad SDKs, an iOS build, and a real-device confirmation pass are still pending — see `project_management/TASK_LIST.md`.
 
 ## Running the prototype
 
@@ -53,11 +53,11 @@ There's no committed `export_presets.cfg` (it embeds a machine-specific keystore
 4. Project Settings needs `rendering/textures/vram_compression/import_etc2_astc` enabled (Android export requires it; already set in `project.godot`).
 5. Export, or from the command line: `Godot --headless --path godot --export-debug "Android Debug" build/neon-tether-debug.apk`.
 
-Verified end-to-end in this environment: the APK builds, signs (`apksigner verify` passes), installs, and its Godot engine reaches its main loop with zero crashes on an emulator (confirmed via `adb logcat`) — but that emulator's software-only GPU couldn't present a final frame to the screen (see `project_management/BUGS.md` ENV-001). That's a known limitation of software-rendered emulators, not a bug in the game; a real device or a GPU-accelerated emulator is needed to confirm on-screen rendering.
+Verified end-to-end in this environment: the APK builds, signs (`apksigner verify` passes), installs, and was actually **played** on an Android emulator with real GPU acceleration (`-gpu host`, this machine's Intel UHD 620) — menu, navigation, and a full gameplay run all render and play correctly, with best score persisting across runs. The project's renderer is set to `gl_compatibility`; the `mobile` (Vulkan) renderer kept failing to present specifically on this emulator's Vulkan swapchain, on both software and hardware GPU backends — see `project_management/BUGS.md` ENV-001 for the full investigation. Still worth a real-device pass before shipping.
 
 ## Próximos pasos (Phase 10-11)
 
-El port a Godot 4 (ver `docs/technology_selection.md` y `docs/architecture.md`) tiene ya el esqueleto, la mecánica core, guardado cifrado, la UI completa (menú/tienda/logros/config/eventos/tutorial) con misiones diarias reales, y un build debug de Android real y firmado. Falta: SDKs de IAP/anuncios reales, el build de iOS, y confirmar el renderizado en un dispositivo real o emulador con GPU — ver `project_management/ROADMAP.md`.
+El port a Godot 4 (ver `docs/technology_selection.md` y `docs/architecture.md`) tiene ya el esqueleto, la mecánica core, guardado cifrado, la UI completa (menú/tienda/logros/config/eventos/tutorial) con misiones diarias reales, y un build debug de Android real, firmado, y **jugado con éxito** en un emulador con GPU acelerada. Falta: SDKs de IAP/anuncios reales, el build de iOS, y una pasada final de confirmación en un dispositivo físico — ver `project_management/ROADMAP.md`.
 
 ---
 
