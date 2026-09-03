@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added (Phase 10 — VFX + app icon)
+- Implemented the three VFX specs from `docs/art_direction.md` section 2, which had only ever existed as design-doc prose until now: Tether Ribbon Trails (tapering, fading 0.8→0.0 over a 200ms window), The Snap Flash (expanding/fading white shockwave ring on merge, 150ms), and Shatter Spark Burst (24 particles scattering outward with gravity on crash) — all in `godot/scripts/gameplay.gd`, drawn the same lightweight way as everything else there (no particle-node overhead).
+- Real app icon (`godot/icon.png`, 512x512), generated in-engine from the game's own visual motif rather than left as the default Godot robot.
+
+### Fixed (Phase 10 — Android rendering, round 2)
+- BUG-007: simplifying `project.godot`'s renderer setting down to one key silently regressed Android back to the `mobile`/Vulkan renderer that ENV-001 documents as broken on this emulator — the Android runtime specifically needs the `.mobile`-suffixed override, not just the base key. Restored both. See `BUGS.md`.
+
 ### Fixed (Phase 10 — Android rendering confirmed)
 - ENV-001 resolved for real: relaunched the emulator with actual host GPU acceleration (`-gpu host`, this machine's Intel UHD 620 via Vulkan 1.3) instead of forced software rendering. `gl_compatibility` then rendered correctly end-to-end — menu, shop nav, and two full played gameplay runs (via simulated `adb input` touch), with best score correctly persisting across them (40m → 41m) and the game-over screen showing no layout issues. `mobile` (Vulkan) still failed to present even with real hardware behind it, pointing at the Android Emulator's own Vulkan swapchain specifically rather than a hardware limitation — so the project's renderer is now committed as `gl_compatibility` (`project.godot`).
 

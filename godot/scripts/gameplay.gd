@@ -42,6 +42,24 @@ var _cyan := Color("#00f0ff")
 var _magenta := Color("#ff007f")
 var _collect_dist := CRYSTAL_COLLECT_DIST
 
+# VFX specs from docs/art_direction.md section 2.
+const TRAIL_DURATION := 0.2 # "fading opacity (0.8 -> 0.0) over 200ms window"
+const SNAP_FLASH_DURATION := 0.15 # "expands and fades out within 150ms"
+const SNAP_FLASH_MAX_RADIUS := 45.0
+const SHATTER_PARTICLE_COUNT := 24 # "break into 24 smaller glowing particle blocks"
+const SHATTER_GRAVITY := 420.0 # "simple linear gravity pulling them down"
+
+# {x: float, age: float}, oldest-to-newest not required — drawn in whatever order, age controls fade.
+var _trail_left: Array = []
+var _trail_right: Array = []
+
+var _snap_flash_t := -1.0 # negative = inactive
+var _snap_flash_center := Vector2.ZERO
+
+# {pos: Vector2, vel: Vector2}
+var _shatter_particles: Array = []
+var _shatter_active := false
+
 var active := false
 var width := MIN_WIDTH
 var target_width := MIN_WIDTH
@@ -112,6 +130,11 @@ func _start_run() -> void:
 	obstacles.clear()
 	crystals.clear()
 	next_obstacle_time = 0.0
+	_trail_left.clear()
+	_trail_right.clear()
+	_snap_flash_t = -1.0
+	_shatter_particles.clear()
+	_shatter_active = false
 	active = true
 	_score_label.text = "0m"
 	_crystals_label.text = "0"
@@ -144,19 +167,27 @@ func _on_hold_end() -> void:
 		quick_snaps_count += 1
 	AudioSynth.play_merge()
 	_haptic(80)
+	# "The Snap Flash": circular white-glow shockwave on merge (art_direction.md 2).
+	_snap_flash_t = 0.0
+	_snap_flash_center = Vector2(CANVAS_WIDTH / 2.0, PLAYER_Y)
 
 func _haptic(duration_ms: int) -> void:
 	if GameState.haptics_enabled:
 		Input.vibrate_handheld(duration_ms)
 
 func _process(delta: float) -> void:
-	if not active:
-		return
-	# Normalized to 60hz steps so feel/timing matches the prototype's
-	# requestAnimationFrame-driven loop (which assumed a fixed 60fps),
-	# but scales correctly on displays that aren't exactly 60Hz.
-	var steps := delta * 60.0
-	_advance(steps)
+	# VFX (trail aging, snap flash, shatter burst) keep animating through the
+	# ~0.6s crash-to-gameover delay even after `active` goes false, so the
+	# shatter burst actually gets to play out instead of freezing mid-crash.
+	if active:
+		# Normalized to 60hz steps so feel/timing matches the prototype's
+		# requestAnimationFrame-driven loop (which assumed a fixed 60fps),
+		# but scales correctly on displays that aren't exactly 60Hz.
+		var steps := delta * 60.0
+		_advance(steps)
+	_age_trail(delta)
+	_update_snap_flash(delta)
+	_update_shatter(delta)
 	queue_redraw()
 
 func _advance(steps: float) -> void:
@@ -168,9 +199,52 @@ func _advance(steps: float) -> void:
 		next_obstacle_time = 50.0 + randf() * 40.0
 
 	_move_and_collide(steps)
+	_sample_trail()
 
 	score += steps
 	_score_label.text = "%dm" % int(score / 5.0)
+
+## "Tether Ribbon Trails": tapering ribbon with fading opacity 0.8 -> 0.0
+## over a 200ms window (art_direction.md 2). Spheres only move horizontally
+## here (Y is fixed at PLAYER_Y), so this is a per-sphere history of X only.
+func _sample_trail() -> void:
+	var sphere_offset := width / 2.0
+	_trail_left.push_back({"x": CANVAS_WIDTH / 2.0 - sphere_offset, "age": 0.0})
+	_trail_right.push_back({"x": CANVAS_WIDTH / 2.0 + sphere_offset, "age": 0.0})
+
+func _age_trail(delta: float) -> void:
+	for trail in [_trail_left, _trail_right]:
+		for i in range(trail.size() - 1, -1, -1):
+			trail[i].age += delta
+			if trail[i].age > TRAIL_DURATION:
+				trail.remove_at(i)
+
+func _update_snap_flash(delta: float) -> void:
+	if _snap_flash_t < 0.0:
+		return
+	_snap_flash_t += delta
+	if _snap_flash_t > SNAP_FLASH_DURATION:
+		_snap_flash_t = -1.0
+
+## "Shatter Spark Burst": on hit, 24 particles scatter outward with gravity
+## pulling them down (art_direction.md 2).
+func _spawn_shatter(at: Vector2) -> void:
+	_shatter_particles.clear()
+	for i in SHATTER_PARTICLE_COUNT:
+		var angle := (TAU / SHATTER_PARTICLE_COUNT) * i + randf_range(-0.2, 0.2)
+		var spd := randf_range(80.0, 220.0)
+		_shatter_particles.append({
+			"pos": at,
+			"vel": Vector2(cos(angle), sin(angle)) * spd,
+		})
+	_shatter_active = true
+
+func _update_shatter(delta: float) -> void:
+	if not _shatter_active:
+		return
+	for p in _shatter_particles:
+		p.vel.y += SHATTER_GRAVITY * delta
+		p.pos += p.vel * delta
 
 func _spawn() -> void:
 	if randf() < 0.6:
@@ -250,6 +324,8 @@ func _crash() -> void:
 	AudioSynth.play_crash()
 	_haptic(200)
 
+	_spawn_shatter(Vector2(CANVAS_WIDTH / 2.0, PLAYER_Y))
+
 	var distance := int(score / 5.0)
 	GameState.record_run({
 		"distance": distance,
@@ -284,9 +360,33 @@ func _draw() -> void:
 		])
 		draw_colored_polygon(pts, COLOR_GREEN)
 
-	var sphere_offset := width / 2.0
-	var left_pos := Vector2(CANVAS_WIDTH / 2.0 - sphere_offset, PLAYER_Y)
-	var right_pos := Vector2(CANVAS_WIDTH / 2.0 + sphere_offset, PLAYER_Y)
-	draw_line(left_pos, right_pos, _cyan, 2.0)
-	draw_circle(left_pos, SPHERE_RADIUS, _cyan)
-	draw_circle(right_pos, SPHERE_RADIUS, _magenta)
+	_draw_trail(_trail_left, _cyan)
+	_draw_trail(_trail_right, _magenta)
+
+	if not _shatter_active:
+		var sphere_offset := width / 2.0
+		var left_pos := Vector2(CANVAS_WIDTH / 2.0 - sphere_offset, PLAYER_Y)
+		var right_pos := Vector2(CANVAS_WIDTH / 2.0 + sphere_offset, PLAYER_Y)
+		draw_line(left_pos, right_pos, _cyan, 2.0)
+		draw_circle(left_pos, SPHERE_RADIUS, _cyan)
+		draw_circle(right_pos, SPHERE_RADIUS, _magenta)
+
+	if _snap_flash_t >= 0.0:
+		var t := _snap_flash_t / SNAP_FLASH_DURATION
+		var radius := lerpf(4.0, SNAP_FLASH_MAX_RADIUS, t)
+		var alpha := lerpf(0.9, 0.0, t)
+		draw_arc(_snap_flash_center, radius, 0.0, TAU, 32, Color(1, 1, 1, alpha), 3.0)
+
+	if _shatter_active:
+		for i in _shatter_particles.size():
+			var p: Dictionary = _shatter_particles[i]
+			var color: Color = _cyan if i % 2 == 0 else _magenta
+			draw_rect(Rect2(p.pos - Vector2(3, 3), Vector2(6, 6)), color, true)
+
+func _draw_trail(trail: Array, color: Color) -> void:
+	for entry in trail:
+		var t: float = entry.age / TRAIL_DURATION
+		var alpha := lerpf(0.8, 0.0, t)
+		var half_w := lerpf(4.0, 0.5, t)
+		var x: float = entry.x
+		draw_rect(Rect2(x - half_w, PLAYER_Y - half_w, half_w * 2.0, half_w * 2.0), Color(color, alpha), true)
