@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added (Phase 10 — Godot UI + missions)
+- Full Godot production UI for Menu, Grid Shop (tethers/cores/upgrades, real crystal purchases), System Achievements (real progress tracking), Configuration (music/haptics/colorblind), and Live Matrix Events (leaderboard + daily missions) — `godot/scripts/screens/*.gd`, ported 1:1 from `prototype/index.html`'s catalog/achievement/event content.
+- Daily missions system (`GameState._ensure_daily_missions()`), matching `docs/GDD.md`'s "3 dynamic objectives daily" — the browser prototype never actually built this despite documenting it as done.
+- Tether skin colors (per-cosmetic + colorblind override, ported from `applySkinStyles()`) and the `double-crystals` upgrade's +20% crystal collect radius now actually apply in gameplay, not just cosmetically in the shop.
+- Downloaded and ran Godot 4.7.2 for real in this dev environment: headless script-error checks plus an in-engine automated screenshot test across all 6 screens (menu, shop, achievements, settings, events, gameplay), and an actual played run via simulated input.
+
+### Fixed
+- BUG-005: sub-screens (Shop/Achievements/Settings/Events) rendered with the Main Menu bleeding through underneath — their root `Control` had no explicit size, so every full-rect child inside collapsed to 0x0. Only visible with real rendering, not the headless check.
+- BUG-006: `UIHelpers.label()`'s default-on autowrap could squeeze a short badge label (e.g. the achievement reward tag) to a sliver next to a wider sibling, wrapping it into an unreadable stack of single characters. Autowrap is now opt-in.
+
 ### Added (Phase 10 — Godot port started)
 - Godot 4 project skeleton under `godot/`: `project.godot` (portrait 450x800 design viewport, `canvas_items`/`keep` stretch), and autoload singletons `SaveSystem`, `GameState`, `AudioSynth`.
 - Core split/merge spring-easing mechanic, procedural obstacle/crystal spawning, and collision/graze rules ported from `prototype/app.js` to `godot/scripts/gameplay.gd`, constants carried over unscaled from the prototype's CSS/JS.

@@ -1,15 +1,21 @@
 extends Control
 
-## Minimal AppStateMachine (architecture.md): MENU / PLAYING / GAMEOVER.
-## This is a functional placeholder shell to host the real gameplay loop —
-## not the full menu/shop/settings UI, which is separate remaining Phase 10
-## scope (see TASK_LIST.md).
+## AppStateMachine (architecture.md): MENU / SHOP / ACHIEVEMENTS / SETTINGS /
+## EVENTS / PLAYING / GAMEOVER. Screens are built by scripts/screens/*.gd
+## (plain Control scripts, no hand-authored .tscn per screen — see those
+## files for why) and routed here.
 
+const UIHelpers = preload("res://scripts/ui_helpers.gd")
 const GAMEPLAY_SCENE := preload("res://scenes/Gameplay.tscn")
+const SHOP_SCREEN := preload("res://scripts/screens/shop_screen.gd")
+const ACHIEVEMENTS_SCREEN := preload("res://scripts/screens/achievements_screen.gd")
+const SETTINGS_SCREEN := preload("res://scripts/screens/settings_screen.gd")
+const EVENTS_SCREEN := preload("res://scripts/screens/events_screen.gd")
 
 var _gameplay = null # untyped: gameplay.gd's custom `run_finished` signal isn't on Node's static API
 var _menu_layer: CanvasLayer
 var _gameover_layer: CanvasLayer
+var _sub_screen_layer: CanvasLayer # shop / achievements / settings / events
 
 func _ready() -> void:
 	_show_menu()
@@ -17,45 +23,78 @@ func _ready() -> void:
 func _show_menu() -> void:
 	_clear_gameplay()
 	_clear_gameover()
+	_clear_sub_screen()
 
 	_menu_layer = CanvasLayer.new()
 	add_child(_menu_layer)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.043, 0.043, 0.086, 1.0)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_menu_layer.add_child(bg)
+	_menu_layer.add_child(UIHelpers.bg(Color(0.043, 0.043, 0.086, 1.0)))
 
-	var title := Label.new()
-	title.text = "NEON TETHER"
-	title.add_theme_font_size_override("font_size", 40)
-	title.add_theme_color_override("font_color", Color("#00f0ff"))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var title := UIHelpers.label("NEON TETHER", 40, UIHelpers.CYAN, HORIZONTAL_ALIGNMENT_CENTER)
 	title.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	title.position = Vector2(-200, 260)
+	title.position = Vector2(-200, 220)
 	title.custom_minimum_size = Vector2(400, 60)
 	_menu_layer.add_child(title)
 
-	var best_label := Label.new()
-	best_label.text = "BEST: %dm" % GameState.best_score
-	best_label.add_theme_font_size_override("font_size", 18)
-	best_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
-	best_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var crystal_label := UIHelpers.label("💎 %d" % GameState.crystals, 16, UIHelpers.GREEN, HORIZONTAL_ALIGNMENT_CENTER)
+	crystal_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	crystal_label.position = Vector2(-200, 280)
+	crystal_label.custom_minimum_size = Vector2(400, 26)
+	_menu_layer.add_child(crystal_label)
+
+	var best_label := UIHelpers.label("BEST: %dm" % GameState.best_score, 18, Color(1, 1, 1, 0.7), HORIZONTAL_ALIGNMENT_CENTER)
 	best_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	best_label.position = Vector2(-200, 320)
+	best_label.position = Vector2(-200, 310)
 	best_label.custom_minimum_size = Vector2(400, 30)
 	_menu_layer.add_child(best_label)
 
-	var play_btn := Button.new()
-	play_btn.text = "PLAY"
-	play_btn.custom_minimum_size = Vector2(200, 64)
+	var play_btn := UIHelpers.button("PLAY", 200, 64)
 	play_btn.set_anchors_preset(Control.PRESET_CENTER)
-	play_btn.position = Vector2(-100, -32)
+	play_btn.position = Vector2(-100, -70)
 	play_btn.pressed.connect(_start_game)
 	_menu_layer.add_child(play_btn)
 
+	var nav := HBoxContainer.new()
+	nav.set_anchors_preset(Control.PRESET_CENTER)
+	nav.position = Vector2(-200, 20)
+	nav.custom_minimum_size = Vector2(400, 48)
+	nav.add_theme_constant_override("separation", 8)
+	_menu_layer.add_child(nav)
+
+	var nav_entries := [
+		["SHOP", func(): _show_sub_screen(SHOP_SCREEN)],
+		["LOGS", func(): _show_sub_screen(ACHIEVEMENTS_SCREEN)],
+		["EVENTS", func(): _show_sub_screen(EVENTS_SCREEN)],
+		["CONFIG", func(): _show_sub_screen(SETTINGS_SCREEN)],
+	]
+	for entry in nav_entries:
+		var b := UIHelpers.button(entry[0], 92, 44)
+		b.pressed.connect(entry[1])
+		nav.add_child(b)
+
 	AudioSynth.enabled = GameState.music_enabled
 	AudioSynth.start_bgm()
+
+func _show_sub_screen(screen_script: GDScript) -> void:
+	_clear_sub_screen()
+	_sub_screen_layer = CanvasLayer.new()
+	add_child(_sub_screen_layer)
+
+	var screen = screen_script.new() # untyped: back_pressed isn't on Control's static API
+	# A fresh Control defaults to a 0x0 rect. Its own anchors resolve against
+	# the viewport (it's a direct child of a CanvasLayer, not another
+	# Control), but its CHILDREN's anchors resolve against *this* rect — so
+	# without this, every full-rect/full-width child inside the screen
+	# (background, header) collapses to 0x0 too, and the menu underneath
+	# shows straight through. Found via the in-engine screenshot test.
+	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	screen.back_pressed.connect(_clear_sub_screen)
+	_sub_screen_layer.add_child(screen)
+
+func _clear_sub_screen() -> void:
+	if _sub_screen_layer:
+		_sub_screen_layer.queue_free()
+		_sub_screen_layer = null
 
 func _start_game() -> void:
 	_clear_menu()
@@ -72,16 +111,12 @@ func _show_gameover(distance: int, crystals_collected: int) -> void:
 	_gameover_layer = CanvasLayer.new()
 	add_child(_gameover_layer)
 
-	var bg := ColorRect.new()
-	bg.color = Color(0.043, 0.043, 0.086, 1.0)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_gameover_layer.add_child(bg)
+	_gameover_layer.add_child(UIHelpers.bg(Color(0.043, 0.043, 0.086, 1.0)))
 
-	var result := Label.new()
-	result.text = "CRASHED\n%dm  (+%d crystals)\nBEST: %dm" % [distance, crystals_collected, GameState.best_score]
-	result.add_theme_font_size_override("font_size", 24)
-	result.add_theme_color_override("font_color", Color("#ff007f"))
-	result.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var result := UIHelpers.label(
+		"CRASHED\n%dm  (+%d crystals)\nBEST: %dm" % [distance, crystals_collected, GameState.best_score],
+		24, UIHelpers.MAGENTA, HORIZONTAL_ALIGNMENT_CENTER
+	)
 	result.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	result.position = Vector2(-200, 260)
 	result.custom_minimum_size = Vector2(400, 140)
@@ -90,9 +125,7 @@ func _show_gameover(distance: int, crystals_collected: int) -> void:
 	# Positioned to clear the result label's reserved box (260 to 400) below,
 	# not just its text — a first live playtest showed RETRY rendering on top
 	# of the result text because these two boxes overlapped by design.
-	var retry_btn := Button.new()
-	retry_btn.text = "RETRY"
-	retry_btn.custom_minimum_size = Vector2(200, 56)
+	var retry_btn := UIHelpers.button("RETRY", 200, 56)
 	retry_btn.set_anchors_preset(Control.PRESET_CENTER)
 	retry_btn.position = Vector2(-100, 20)
 	retry_btn.pressed.connect(func():
@@ -101,9 +134,7 @@ func _show_gameover(distance: int, crystals_collected: int) -> void:
 	)
 	_gameover_layer.add_child(retry_btn)
 
-	var menu_btn := Button.new()
-	menu_btn.text = "MENU"
-	menu_btn.custom_minimum_size = Vector2(200, 56)
+	var menu_btn := UIHelpers.button("MENU", 200, 56)
 	menu_btn.set_anchors_preset(Control.PRESET_CENTER)
 	menu_btn.position = Vector2(-100, 90)
 	menu_btn.pressed.connect(func():

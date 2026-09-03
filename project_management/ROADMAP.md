@@ -65,11 +65,13 @@ This roadmap details the planned stages for Neon Tether, an original mobile rhyt
 - [x] Godot 4 project skeleton (`godot/`): autoloads for `GameState`/`SaveSystem`/`AudioSynth`, matching the `AppStateMachine`/`SaveSystem` roles from `docs/architecture.md`.
 - [x] Port the validated core loop from the browser prototype to Godot 4 (GDScript) — `godot/scripts/gameplay.gd`.
 - [x] AES-256 save encryption, via Godot's built-in `FileAccess.open_encrypted_with_pass` (`godot/autoload/SaveSystem.gd`).
-- [ ] Full menu/shop/settings/achievements/events UI (still a bare stub — see `TASK_LIST.md`).
-- [ ] Daily missions, real IAP/rewarded-ad SDK integration.
-- [ ] Object pooling for obstacles/crystals per `OPTIMIZATIONS.md`.
-- [ ] Android & iOS builds.
-- [ ] First real editor test pass — the skeleton was authored by hand outside the Godot editor and hasn't been opened/run yet.
+- [x] Full Menu / Grid Shop / Achievements / Configuration / Live Matrix Events UI, ported from `prototype/index.html`'s content (`godot/scripts/screens/*.gd`).
+- [x] Daily missions system, per `docs/GDD.md`'s "3 dynamic objectives daily" (`GameState._ensure_daily_missions()`).
+- [x] Object pooling for obstacles/crystals per `OPTIMIZATIONS.md` — moot in this design: obstacles/crystals are plain data, not per-spawn Nodes, so there's nothing to pool.
+- [x] First real editor test pass — downloaded Godot 4.7.2 into this dev environment and ran the project for real: headless script-error checks, an in-engine automated screenshot test across all 6 screens, and an actual played run via simulated input. Found and fixed 2 real layout bugs (BUG-005, BUG-006) that only showed up with actual rendering.
+- [ ] Real IAP/rewarded-ad SDK integration — shop UI and purchase flow exist, but real-money items show a "not available yet" notice instead of charging (see `TASK_LIST.md`).
+- [ ] Tutorial screen (blocks the "First Transmission" achievement).
+- [ ] Android & iOS builds — needs the Android SDK/signing keystore and a Mac for iOS, unavailable in this dev environment.
 
 ### Phase 11: QA & Optimization — **Pending**
 - [ ] Rigorous testing for bugs, memory leaks, performance bottlenecks, battery drain on target devices (see `OPTIMIZATIONS.md`).
