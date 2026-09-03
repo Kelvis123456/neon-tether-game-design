@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed (Phase 10 — BUG-009, side obstacles were unkillable)
+- Found while re-verifying the tutorial rewrite below, after the user pointed out that clicking/holding in the test screenshots never actually moved the sphere near an obstacle's edge: side/cyan obstacles could never collide with the player, period, regardless of input. `MAX_WIDTH` (140) capped the tether's reach 45px short of the `SIDE_SAFE_MARGIN` (110) threshold on this 450px canvas — the same bug exists in the original browser prototype (`prototype/app.js`), not something the Godot port introduced. Raised `MAX_WIDTH` to 290 so a full split now actually crosses the threshold on both sides. Verified with a direct in-engine test driving `_move_and_collide()` with contrived states (4/4 cases pass: wide-vs-side now collides, narrow-vs-side safe, narrow-vs-center still collides, wide-vs-center still safe) and the rebuilt tutorial visibly showing the sphere overlap each obstacle's edge in the wrong pose. See `BUGS.md` BUG-009.
+
+### Fixed (Phase 10 — difficulty, combo, and tutorial logic)
+- The game had no difficulty ramp at all, in either the Godot port or the original browser prototype — speed and obstacle spawn rate were constant for the entire run. `gameplay.gd` now scales speed (5.0 → 11.0) and tightens spawn interval as distance increases, maxing out around 240m.
+- The combo multiplier was purely cosmetic (a number that went up on grazes but never affected scoring). It now directly multiplies score gain per frame, and decays back toward 1x after 3 seconds without a graze — a real risk/reward mechanic instead of a vanity counter.
+- The tutorial (`tutorial_screen.gd`) taught hold-to-split/release-to-merge as raw input without ever showing an obstacle, so completing it didn't teach which color needed which action. Expanded from 3 to 5 steps: two new briefing steps illustrate the actual magenta center-block and cyan side-block shapes next to the tether width that clears each ("MAGENTA BLOCKS THE CENTER — SPLIT WIDE TO CLEAR IT" / "CYAN BLOCKS THE SIDES — MERGE NARROW TO SLIP THROUGH"), before the existing interactive practice steps.
+
 ### Fixed (Phase 10 — full playtest pass)
 - BUG-008: the shop's "real-money item not available yet" dialog could soft-lock — its message overflowed instead of wrapping and its OK button ended up unreachable, found on a live Android playtest (the only escape was Android's system back button, which exits the whole app). Fixed and re-verified on-device.
 - Measured real FPS via a temporary in-engine counter after doubting whether the build was actually optimized: desktop holds a stable 60 FPS with the same code/workload that showed 14-47 FPS on the Android emulator, which points at emulator rendering overhead rather than the game logic — but this hasn't been confirmed on a real device yet (see `TASK_LIST.md`).

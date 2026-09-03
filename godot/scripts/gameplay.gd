@@ -12,7 +12,16 @@ const CANVAS_HEIGHT := 800.0
 const PLAYER_Y := CANVAS_HEIGHT - 180.0
 const SPRING_LERP := 0.18
 const MIN_WIDTH := 10.0
-const MAX_WIDTH := 140.0
+# 140 was carried over unscaled from the browser prototype's targetWidth, but
+# on this 450px-wide canvas it's actually too small to ever be dangerous: full
+# split only reaches sphere_offset 70 (player_left_x 155), 45px short of
+# SIDE_SAFE_MARGIN's 110 threshold. That means side/cyan obstacles could
+# never kill the player no matter what action was taken — a real mechanic
+# bug present in the original prototype too, not something the Godot port
+# introduced. Raised so a full split now crosses the threshold (offset 145,
+# player_left_x 80), by the same ~30-unit margin MIN_WIDTH already gives the
+# center/magenta side (offset 5 vs. its 35 threshold).
+const MAX_WIDTH := 290.0
 const SPHERE_RADIUS := 10.0
 const OBSTACLE_HALF_HEIGHT := 12.5
 const CENTER_OBSTACLE_WIDTH := 60.0
@@ -21,6 +30,24 @@ const CRYSTAL_COLLECT_DIST := 25.0
 const GRAZE_BAND := 22.0
 const CENTER_MERGE_THRESHOLD := 35.0
 const SIDE_SAFE_MARGIN := 110.0
+
+# Difficulty ramp: speed and spawn rate scale with score, maxing out around
+# DIFFICULTY_RAMP_SCORE (score/5 = meters, so ~240m). The original prototype
+# never scaled either of these — constant difficulty was a real weakness,
+# not something faithfully preserved on purpose.
+const BASE_SPEED := 5.0
+const MAX_SPEED := 11.0
+const DIFFICULTY_RAMP_SCORE := 1200.0
+const BASE_SPAWN_MIN := 50.0
+const BASE_SPAWN_MAX := 90.0
+const HARD_SPAWN_MIN := 30.0
+const HARD_SPAWN_MAX := 55.0
+
+# Combo: grazing keeps it up and it directly multiplies score gain (real
+# risk/reward now, instead of a cosmetic number); left alone for a few
+# seconds, it decays back toward 1x.
+const COMBO_DECAY_DELAY := 3.0
+const COMBO_DECAY_RATE := 0.15
 
 const COLOR_GREEN := Color("#39ff14")
 const COLOR_BG := Color(0.012, 0.012, 0.027)
@@ -71,6 +98,7 @@ var grazes_count := 0
 var quick_snaps_count := 0
 var _hold_started_at_ms := 0
 var next_obstacle_time := 0.0
+var _time_since_graze := 0.0
 
 # {type: "center"|"side_left"|"side_right", y: float, resolved: bool}
 var obstacles: Array = []
@@ -124,7 +152,8 @@ func _start_run() -> void:
 	score = 0.0
 	run_crystals = 0
 	combo = 1.0
-	speed = 5.0
+	speed = BASE_SPEED
+	_time_since_graze = 0.0
 	width = MIN_WIDTH
 	target_width = MIN_WIDTH
 	obstacles.clear()
@@ -185,6 +214,7 @@ func _process(delta: float) -> void:
 		# but scales correctly on displays that aren't exactly 60Hz.
 		var steps := delta * 60.0
 		_advance(steps)
+		_update_combo_decay(delta)
 	_age_trail(delta)
 	_update_snap_flash(delta)
 	_update_shatter(delta)
@@ -193,16 +223,30 @@ func _process(delta: float) -> void:
 func _advance(steps: float) -> void:
 	width += (target_width - width) * SPRING_LERP * steps
 
+	var difficulty_t := clampf(score / DIFFICULTY_RAMP_SCORE, 0.0, 1.0)
+	speed = lerpf(BASE_SPEED, MAX_SPEED, difficulty_t)
+
 	next_obstacle_time -= steps
 	if next_obstacle_time <= 0.0:
 		_spawn()
-		next_obstacle_time = 50.0 + randf() * 40.0
+		var spawn_min := lerpf(BASE_SPAWN_MIN, HARD_SPAWN_MIN, difficulty_t)
+		var spawn_max := lerpf(BASE_SPAWN_MAX, HARD_SPAWN_MAX, difficulty_t)
+		next_obstacle_time = spawn_min + randf() * (spawn_max - spawn_min)
 
 	_move_and_collide(steps)
 	_sample_trail()
 
-	score += steps
+	# Combo directly multiplies score gain now — grazing obstacles and
+	# keeping the combo up is what actually pays off, not just a number
+	# going up on screen for its own sake.
+	score += steps * combo
 	_score_label.text = "%dm" % int(score / 5.0)
+
+func _update_combo_decay(delta: float) -> void:
+	_time_since_graze += delta
+	if _time_since_graze > COMBO_DECAY_DELAY and combo > 1.0:
+		combo = maxf(1.0, combo - COMBO_DECAY_RATE * delta)
+		_combo_label.text = "%.1fx" % combo
 
 ## "Tether Ribbon Trails": tapering ribbon with fading opacity 0.8 -> 0.0
 ## over a 200ms window (art_direction.md 2). Spheres only move horizontally
@@ -315,6 +359,7 @@ func _move_and_collide(steps: float) -> void:
 func _graze() -> void:
 	combo += 0.1
 	grazes_count += 1
+	_time_since_graze = 0.0
 	_combo_label.text = "%.1fx" % combo
 	_combo_label.visible = true
 	AudioSynth.play_graze()
