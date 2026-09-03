@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed (Phase 10 — Android rendering confirmed)
+- ENV-001 resolved for real: relaunched the emulator with actual host GPU acceleration (`-gpu host`, this machine's Intel UHD 620 via Vulkan 1.3) instead of forced software rendering. `gl_compatibility` then rendered correctly end-to-end — menu, shop nav, and two full played gameplay runs (via simulated `adb input` touch), with best score correctly persisting across them (40m → 41m) and the game-over screen showing no layout issues. `mobile` (Vulkan) still failed to present even with real hardware behind it, pointing at the Android Emulator's own Vulkan swapchain specifically rather than a hardware limitation — so the project's renderer is now committed as `gl_compatibility` (`project.godot`).
+
+### Added (Phase 10 — Android debug build)
+- Real, signed Android debug build (`godot/build/neon-tether-debug.apk`, arm64-v8a + x86_64) — configured Godot's Android/Java SDK paths against tooling already present on this machine, enabled the mandatory ETC2/ASTC texture-compression setting, and set up an Android export preset using the standard debug keystore. Verified with `apksigner verify` and by installing/launching it on an emulator: the Godot engine reaches its main loop with zero crashes (confirmed via `adb logcat`).
+- Documented the reproducible local setup steps in `README.md` (`export_presets.cfg` itself stays gitignored — it embeds a machine-specific keystore path).
+
+### Fixed / Investigated
+- ENV-001 (not a code bug): isolated why the on-screen frame stayed black on this dev sandbox's only available emulator to two independent software-rendering limits — a Vulkan present-queue failure on the `mobile` renderer, and a shader-compile uniform-budget failure on `gl_compatibility`, both specific to the emulator's software GPU (SwiftShader), neither touching any Neon Tether code. See `project_management/BUGS.md`.
+
 ### Added (Phase 10 — Godot UI + missions + tutorial)
 - Full Godot production UI for Menu, Grid Shop (tethers/cores/upgrades, real crystal purchases), System Achievements (real progress tracking), Configuration (music/haptics/colorblind), Live Matrix Events (leaderboard + daily missions), and Tutorial — `godot/scripts/screens/*.gd`, ported 1:1 from `prototype/index.html`'s catalog/achievement/event/tutorial content.
 - Daily missions system (`GameState._ensure_daily_missions()`), matching `docs/GDD.md`'s "3 dynamic objectives daily" — the browser prototype never actually built this despite documenting it as done.
