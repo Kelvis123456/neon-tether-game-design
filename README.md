@@ -31,7 +31,7 @@ Este repositorio es un **documento de pre-producción completo**, no un juego te
 - **`docs/`** — full design process: market research, ideation, concept validation, complete Game Design Document, art direction, technology selection (Godot 4), architecture, and the vertical-slice report.
 - **`project_management/`** — roadmap, task list, decisions log, risks, bugs, changelog, and optimization notes kept during design.
 - **`prototype/`** — a working browser prototype (HTML/CSS/JS) implementing the full core loop: split/merge tether mechanic, Volt Crystal collection, "Grazed" combo, shop with real skin/core selection, synthesized SFX + background music, `localStorage` persistence, and a local leaderboard.
-- **`godot/`** — the Phase 10 Godot 4 production port: the split/merge core loop, procedural audio, an AES-256 encrypted save file, and a full Menu / Grid Shop / Achievements / Configuration / Live Matrix Events / Tutorial UI with real daily missions. Verified running in Godot 4.7.2 on desktop and, as a signed Android debug build, actually played on a GPU-accelerated emulator. Real IAP/ad SDKs, an iOS build, and a real-device confirmation pass are still pending — see `project_management/TASK_LIST.md`.
+- **`godot/`** — the Phase 10 Godot 4 production port: the split/merge core loop with the VFX from `docs/art_direction.md` (tether trails, snap flash, shatter burst), procedural audio, a real app icon, an AES-256 encrypted save file, and a full Menu / Grid Shop / Achievements / Configuration / Live Matrix Events / Tutorial UI with real daily missions. Verified running in Godot 4.7.2 on desktop and, as a signed Android debug build, actually played on a GPU-accelerated emulator. Real IAP/ad SDKs, an iOS build, and a real-device confirmation pass are still pending — see `project_management/TASK_LIST.md`.
 
 ## Running the prototype
 
@@ -54,6 +54,8 @@ There's no committed `export_presets.cfg` (it embeds a machine-specific keystore
 5. Export, or from the command line: `Godot --headless --path godot --export-debug "Android Debug" build/neon-tether-debug.apk`.
 
 Verified end-to-end in this environment: the APK builds, signs (`apksigner verify` passes), installs, and was actually **played** on an Android emulator with real GPU acceleration (`-gpu host`, this machine's Intel UHD 620) — menu, navigation, and a full gameplay run all render and play correctly, with best score persisting across runs. The project's renderer is set to `gl_compatibility`; the `mobile` (Vulkan) renderer kept failing to present specifically on this emulator's Vulkan swapchain, on both software and hardware GPU backends — see `project_management/BUGS.md` ENV-001 for the full investigation. Still worth a real-device pass before shipping.
+
+**Gotcha if you ever touch the renderer setting:** it has to be set as *both* `renderer/rendering_method` and `renderer/rendering_method.mobile` in `project.godot` (the Android runtime specifically reads the `.mobile`-suffixed one) — setting only the base key builds fine and even embeds the right value in `assets/project.binary`, but Android silently falls back to `mobile`/Vulkan at runtime anyway. See `BUGS.md` BUG-007. Also, if a rebuilt APK doesn't seem to reflect your latest changes, `adb install -r` can serve stale content via its incremental-install path — reinstall with `adb uninstall <package>` first, or push + `pm install` instead of `adb install`.
 
 ## Próximos pasos (Phase 10-11)
 
