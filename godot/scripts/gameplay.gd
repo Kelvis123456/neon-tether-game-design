@@ -12,7 +12,16 @@ const CANVAS_HEIGHT := 800.0
 const PLAYER_Y := CANVAS_HEIGHT - 180.0
 const SPRING_LERP := 0.18
 const MIN_WIDTH := 10.0
-const MAX_WIDTH := 140.0
+# 140 was carried over unscaled from the browser prototype's targetWidth, but
+# on this 450px-wide canvas it's actually too small to ever be dangerous: full
+# split only reaches sphere_offset 70 (player_left_x 155), 45px short of
+# SIDE_SAFE_MARGIN's 110 threshold. That means side/cyan obstacles could
+# never kill the player no matter what action was taken — a real mechanic
+# bug present in the original prototype too, not something the Godot port
+# introduced. Raised so a full split now crosses the threshold (offset 145,
+# player_left_x 80), by the same ~30-unit margin MIN_WIDTH already gives the
+# center/magenta side (offset 5 vs. its 35 threshold).
+const MAX_WIDTH := 290.0
 const SPHERE_RADIUS := 10.0
 const OBSTACLE_HALF_HEIGHT := 12.5
 const CENTER_OBSTACLE_WIDTH := 60.0

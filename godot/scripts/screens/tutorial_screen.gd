@@ -6,7 +6,10 @@ extends Node2D
 ## INPUT (hold=split, release=merge) without ever showing an obstacle, so a
 ## player could finish it and still not know which color they had to dodge
 ## with which action. Steps 1-2 now show the actual center/side obstacle
-## shapes from gameplay.gd next to the tether width that clears them, before
+## shapes from gameplay.gd: first the WRONG tether state actually touching
+## the obstacle (a real collision pose, not just a distant illustration —
+## see gameplay.gd's MAX_WIDTH comment for why the old 140 value never let
+## the tether reach that far), then the correct state that clears it, before
 ## steps 3-5 (unchanged practice flow) drill the input itself. Unlocks the
 ## "first_transmission" achievement — previously unreachable in the Godot
 ## port, since nothing else ever completed it.
@@ -26,7 +29,7 @@ const CANVAS_HEIGHT := 800.0
 const TETHER_Y := 420.0
 const SPRING_LERP := 0.18
 const MIN_WIDTH := 10.0
-const MAX_WIDTH := 140.0
+const MAX_WIDTH := 290.0 # kept in sync with gameplay.gd's MAX_WIDTH
 const SPHERE_RADIUS := 10.0
 const COLOR_BG := Color(0.012, 0.012, 0.027)
 
@@ -36,6 +39,8 @@ const COLOR_BG := Color(0.012, 0.012, 0.027)
 const CENTER_OBSTACLE_WIDTH := 60.0
 const SIDE_OBSTACLE_WIDTH := 100.0
 const OBSTACLE_HALF_HEIGHT := 40.0
+
+const DANGER_PREVIEW_DURATION := 1.1
 
 const STEP_BRIEF_MAGENTA := 1
 const STEP_BRIEF_CYAN := 2
@@ -47,6 +52,9 @@ var step := STEP_BRIEF_MAGENTA
 var width := MIN_WIDTH
 var target_width := MIN_WIDTH
 
+var _brief_t := 0.0
+var _brief_revealed := false
+
 var _hud: CanvasLayer
 var _step_label: Label
 var _instruction_label: Label
@@ -54,9 +62,12 @@ var _hint_label: Label
 var _abandon_btn: Button
 var _cyan := Color("#00f0ff")
 var _magenta := Color("#ff007f")
+var _danger := Color("#ff3b3b")
 
 func _ready() -> void:
 	_build_hud()
+	# Step 1 starts in its DANGER pose already: default width is MIN_WIDTH
+	# (merged), which is exactly what collides with the center obstacle.
 
 func _build_hud() -> void:
 	_hud = CanvasLayer.new()
@@ -72,8 +83,8 @@ func _build_hud() -> void:
 	_instruction_label.custom_minimum_size = Vector2(CANVAS_WIDTH - 50, 70)
 	_hud.add_child(_instruction_label)
 
-	_hint_label = UIHelpers.label("SPLIT WIDE TO CLEAR IT — 👆 TAP TO CONTINUE", 15, Color(1, 1, 1, 0.7), HORIZONTAL_ALIGNMENT_CENTER, true)
-	_hint_label.position = Vector2(25, TETHER_Y + 50)
+	_hint_label = UIHelpers.label("⚠ STAY MERGED AND THIS HAPPENS", 15, _danger, HORIZONTAL_ALIGNMENT_CENTER, true)
+	_hint_label.position = Vector2(25, TETHER_Y + 55)
 	_hint_label.custom_minimum_size = Vector2(CANVAS_WIDTH - 50, 44)
 	_hud.add_child(_hint_label)
 
@@ -81,12 +92,6 @@ func _build_hud() -> void:
 	_abandon_btn.position = Vector2(CANVAS_WIDTH / 2.0 - 130, CANVAS_HEIGHT - 90)
 	_abandon_btn.pressed.connect(func(): finished.emit())
 	_hud.add_child(_abandon_btn)
-
-	# Step 1's illustration needs the tether drawn wide (split) from the
-	# start, since it's a static "here's the safe shape" demo, not something
-	# the player has to hold for.
-	width = MAX_WIDTH
-	target_width = MAX_WIDTH
 
 func _input(event: InputEvent) -> void:
 	if step >= STEP_DONE:
@@ -101,7 +106,9 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if step == STEP_BRIEF_MAGENTA or step == STEP_BRIEF_CYAN:
-		if pressed:
+		# Ignored until the danger→safe reveal has played, so the player
+		# always sees the crash pose before they can skip past it.
+		if pressed and _brief_revealed:
 			_advance_briefing()
 	elif pressed:
 		_on_hold_start()
@@ -114,17 +121,34 @@ func _advance_briefing() -> void:
 		_step_label.text = "TUTORIAL STEP 2/5"
 		_instruction_label.text = "CYAN BLOCKS THE SIDES"
 		_instruction_label.add_theme_color_override("font_color", _cyan)
-		_hint_label.text = "MERGE NARROW TO SLIP THROUGH — 👆 TAP TO CONTINUE"
-		width = MIN_WIDTH
-		target_width = MIN_WIDTH
+		_start_briefing_danger(MAX_WIDTH)
 	elif step == STEP_BRIEF_CYAN:
 		step = STEP_PRACTICE_HOLD
 		_step_label.text = "TUTORIAL STEP 3/5"
 		_instruction_label.text = "PRESS AND HOLD TO SPLIT CORE"
 		_instruction_label.add_theme_color_override("font_color", _cyan)
 		_hint_label.text = "👆 HOLD ANYWHERE"
+		_hint_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
 		width = MIN_WIDTH
 		target_width = MIN_WIDTH
+
+func _start_briefing_danger(danger_width: float) -> void:
+	_brief_t = 0.0
+	_brief_revealed = false
+	width = danger_width
+	target_width = danger_width
+	_hint_label.add_theme_color_override("font_color", _danger)
+	_hint_label.text = "⚠ STAY MERGED AND THIS HAPPENS" if step == STEP_BRIEF_MAGENTA else "⚠ STAY SPLIT WIDE AND THIS HAPPENS"
+
+func _reveal_briefing_safe() -> void:
+	_brief_revealed = true
+	_hint_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
+	if step == STEP_BRIEF_MAGENTA:
+		target_width = MAX_WIDTH
+		_hint_label.text = "SPLIT WIDE TO CLEAR IT — 👆 TAP TO CONTINUE"
+	else:
+		target_width = MIN_WIDTH
+		_hint_label.text = "MERGE NARROW TO SLIP THROUGH — 👆 TAP TO CONTINUE"
 
 func _on_hold_start() -> void:
 	target_width = MAX_WIDTH
@@ -150,26 +174,35 @@ func _on_hold_end() -> void:
 func _process(delta: float) -> void:
 	var steps := delta * 60.0
 	width += (target_width - width) * SPRING_LERP * steps
+
+	if (step == STEP_BRIEF_MAGENTA or step == STEP_BRIEF_CYAN) and not _brief_revealed:
+		_brief_t += delta
+		if _brief_t >= DANGER_PREVIEW_DURATION:
+			_reveal_briefing_safe()
+
 	queue_redraw()
 
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT), COLOR_BG, true)
 
+	var danger_active := (step == STEP_BRIEF_MAGENTA or step == STEP_BRIEF_CYAN) and not _brief_revealed
+	var fill_alpha := 0.35 if danger_active else 0.15
+
 	if step == STEP_BRIEF_MAGENTA:
 		var rect := Rect2(CANVAS_WIDTH / 2.0 - CENTER_OBSTACLE_WIDTH / 2.0, TETHER_Y - OBSTACLE_HALF_HEIGHT, CENTER_OBSTACLE_WIDTH, OBSTACLE_HALF_HEIGHT * 2.0)
-		draw_rect(rect, Color(_magenta, 0.15), true)
-		draw_rect(rect, _magenta, false, 2.0)
+		draw_rect(rect, Color(_magenta, fill_alpha), true)
+		draw_rect(rect, _danger if danger_active else _magenta, false, 2.0)
 	elif step == STEP_BRIEF_CYAN:
 		var left_rect := Rect2(10.0, TETHER_Y - OBSTACLE_HALF_HEIGHT, SIDE_OBSTACLE_WIDTH, OBSTACLE_HALF_HEIGHT * 2.0)
 		var right_rect := Rect2(CANVAS_WIDTH - 110.0, TETHER_Y - OBSTACLE_HALF_HEIGHT, SIDE_OBSTACLE_WIDTH, OBSTACLE_HALF_HEIGHT * 2.0)
-		draw_rect(left_rect, Color(_cyan, 0.15), true)
-		draw_rect(left_rect, _cyan, false, 2.0)
-		draw_rect(right_rect, Color(_cyan, 0.15), true)
-		draw_rect(right_rect, _cyan, false, 2.0)
+		draw_rect(left_rect, Color(_cyan, fill_alpha), true)
+		draw_rect(left_rect, _danger if danger_active else _cyan, false, 2.0)
+		draw_rect(right_rect, Color(_cyan, fill_alpha), true)
+		draw_rect(right_rect, _danger if danger_active else _cyan, false, 2.0)
 
 	var offset := width / 2.0
 	var left_pos := Vector2(CANVAS_WIDTH / 2.0 - offset, TETHER_Y)
 	var right_pos := Vector2(CANVAS_WIDTH / 2.0 + offset, TETHER_Y)
 	draw_line(left_pos, right_pos, _cyan, 2.0)
-	draw_circle(left_pos, SPHERE_RADIUS, _cyan)
-	draw_circle(right_pos, SPHERE_RADIUS, _magenta)
+	draw_circle(left_pos, SPHERE_RADIUS, _danger if danger_active else _cyan)
+	draw_circle(right_pos, SPHERE_RADIUS, _danger if danger_active else _magenta)
