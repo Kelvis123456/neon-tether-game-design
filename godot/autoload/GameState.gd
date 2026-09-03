@@ -32,8 +32,8 @@ const UPGRADE_CATALOG := [
 	{"id": "ad-removal", "name": "SYSTEM BYPASS", "desc": "Removes ads & grants 1 free continue per run", "price": 2.99, "currency": "usd"},
 ]
 
-# "first_transmission" needs the tutorial screen, which hasn't been built in
-# Godot yet (see TASK_LIST.md) — it stays locked until that exists.
+# "first_transmission" unlocks via GameState.complete_tutorial(), called from
+# scripts/screens/tutorial_screen.gd on completing the guided flow.
 # "cyber_master" needs every catalog item owned, premium ones included, so it
 # stays locked until real IAP ships.
 # "strike_the_tether"'s "without split lock" is prototype flavor text
@@ -124,6 +124,10 @@ func select_core(id: String) -> void:
 
 func has_upgrade(id: String) -> bool:
 	return owned_items.has(id)
+
+func complete_tutorial() -> void:
+	_unlock_achievement("first_transmission")
+	save()
 
 ## Called once per run on crash. `stats` keys: distance, crystals, grazes,
 ## quick_snaps (snap-backs under 0.2s).

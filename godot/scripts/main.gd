@@ -11,8 +11,10 @@ const SHOP_SCREEN := preload("res://scripts/screens/shop_screen.gd")
 const ACHIEVEMENTS_SCREEN := preload("res://scripts/screens/achievements_screen.gd")
 const SETTINGS_SCREEN := preload("res://scripts/screens/settings_screen.gd")
 const EVENTS_SCREEN := preload("res://scripts/screens/events_screen.gd")
+const TUTORIAL_SCREEN := preload("res://scripts/screens/tutorial_screen.gd")
 
 var _gameplay = null # untyped: gameplay.gd's custom `run_finished` signal isn't on Node's static API
+var _tutorial = null # untyped: tutorial_screen.gd's custom `finished` signal isn't on Node's static API
 var _menu_layer: CanvasLayer
 var _gameover_layer: CanvasLayer
 var _sub_screen_layer: CanvasLayer # shop / achievements / settings / events
@@ -22,6 +24,7 @@ func _ready() -> void:
 
 func _show_menu() -> void:
 	_clear_gameplay()
+	_clear_tutorial()
 	_clear_gameover()
 	_clear_sub_screen()
 
@@ -54,9 +57,15 @@ func _show_menu() -> void:
 	play_btn.pressed.connect(_start_game)
 	_menu_layer.add_child(play_btn)
 
+	var tutorial_btn := UIHelpers.button("TUTORIAL PROTOCOL", 200, 40)
+	tutorial_btn.set_anchors_preset(Control.PRESET_CENTER)
+	tutorial_btn.position = Vector2(-100, 4)
+	tutorial_btn.pressed.connect(_start_tutorial)
+	_menu_layer.add_child(tutorial_btn)
+
 	var nav := HBoxContainer.new()
 	nav.set_anchors_preset(Control.PRESET_CENTER)
-	nav.position = Vector2(-200, 20)
+	nav.position = Vector2(-200, 54)
 	nav.custom_minimum_size = Vector2(400, 48)
 	nav.add_theme_constant_override("separation", 8)
 	_menu_layer.add_child(nav)
@@ -102,6 +111,13 @@ func _start_game() -> void:
 	_gameplay = GAMEPLAY_SCENE.instantiate()
 	_gameplay.run_finished.connect(_on_run_finished)
 	add_child(_gameplay)
+
+func _start_tutorial() -> void:
+	_clear_menu()
+	AudioSynth.stop_bgm()
+	_tutorial = TUTORIAL_SCREEN.new()
+	_tutorial.finished.connect(_show_menu)
+	add_child(_tutorial)
 
 func _on_run_finished(distance: int, crystals_collected: int) -> void:
 	_clear_gameplay()
@@ -152,6 +168,11 @@ func _clear_gameplay() -> void:
 	if _gameplay:
 		_gameplay.queue_free()
 		_gameplay = null
+
+func _clear_tutorial() -> void:
+	if _tutorial:
+		_tutorial.queue_free()
+		_tutorial = null
 
 func _clear_gameover() -> void:
 	if _gameover_layer:
