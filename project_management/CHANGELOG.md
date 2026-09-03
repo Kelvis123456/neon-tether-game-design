@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed (Phase 10 — full playtest pass)
+- BUG-008: the shop's "real-money item not available yet" dialog could soft-lock — its message overflowed instead of wrapping and its OK button ended up unreachable, found on a live Android playtest (the only escape was Android's system back button, which exits the whole app). Fixed and re-verified on-device.
+- Measured real FPS via a temporary in-engine counter after doubting whether the build was actually optimized: desktop holds a stable 60 FPS with the same code/workload that showed 14-47 FPS on the Android emulator, which points at emulator rendering overhead rather than the game logic — but this hasn't been confirmed on a real device yet (see `TASK_LIST.md`).
+- Played through every screen live on Android after the above (menu, full tutorial flow, achievements, all 3 shop tabs, settings toggles, events/missions/leaderboard, a full gameplay run to crash) — everything else held up correctly.
+
 ### Added (Phase 10 — VFX + app icon)
 - Implemented the three VFX specs from `docs/art_direction.md` section 2, which had only ever existed as design-doc prose until now: Tether Ribbon Trails (tapering, fading 0.8→0.0 over a 200ms window), The Snap Flash (expanding/fading white shockwave ring on merge, 150ms), and Shatter Spark Burst (24 particles scattering outward with gravity on crash) — all in `godot/scripts/gameplay.gd`, drawn the same lightweight way as everything else there (no particle-node overhead).
 - Real app icon (`godot/icon.png`, 512x512), generated in-engine from the game's own visual motif rather than left as the default Godot robot.

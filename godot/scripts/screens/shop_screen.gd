@@ -55,6 +55,13 @@ func _ready() -> void:
 	scroll.add_child(_list)
 
 	_info_dialog = AcceptDialog.new()
+	# Without these, a long dialog_text doesn't wrap and the dialog's default
+	# size doesn't grow to fit it — the message overflows past the panel and
+	# the OK button ends up unreachable, softlocking the dialog (only the
+	# Android system back button escapes it, which exits the whole app
+	# instead of just the dialog). Found via a live Android playtest.
+	_info_dialog.dialog_autowrap = true
+	_info_dialog.min_size = Vector2(380, 0)
 	add_child(_info_dialog)
 
 	_select_tab(Tab.TETHERS)

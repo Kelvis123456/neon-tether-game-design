@@ -6,7 +6,7 @@ This list tracks the concrete tasks to complete the project, categorized by stat
 
 ### To Do (Pendiente)
 - [ ] Integrate real IAP and rewarded-ad SDKs — the Godot shop UI (`godot/scripts/screens/shop_screen.gd`) handles crystal-priced purchases for real, but real-money items show a "not available yet" notice instead of charging anything, since there's no store SDK/account wired up. Same for the game-over "watch ad to continue" button, not yet rebuilt in Godot.
-- [ ] Re-confirm rendering on a real physical device before shipping — verified on a hardware-GPU-accelerated *emulator* (see Done below), which is strong evidence but not a substitute for real device/driver variety, especially since `mobile` (Vulkan) had emulator-specific presentation issues that `gl_compatibility` didn't.
+- [ ] Re-confirm rendering AND real framerate on a real physical device before shipping. Verified rendering correctness on a hardware-GPU-accelerated *emulator* (see Done below), but measured only 14-47 FPS there against a 60 FPS target — with a scene this simple (1-2 obstacles, ~24 particles max), desktop hits a stable 60 FPS on the same code, so the emulator's own rendering overhead is the likely explanation, not the game logic. That's a reasonable read, not a confirmed one — Phase 11 (QA & Optimization) hasn't actually happened, and this needs a real device to resolve for real.
 - [ ] iOS build — needs a Mac, unavailable in this dev environment (Android is done, see Done below).
 - [ ] A pass on real device input latency/feel (touchscreen, not the emulator's simulated `adb input` events used so far).
 
