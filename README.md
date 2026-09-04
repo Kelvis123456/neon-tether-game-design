@@ -51,7 +51,8 @@ There's no committed `export_presets.cfg` (it embeds a machine-specific keystore
    - **Java SDK Path**: a real JDK (17+) — a JRE without `jarsigner` won't work. Android Studio ships one at `<Android Studio install>/jbr`.
 3. In **Project → Export**, add an **Android** preset. For the debug keystore, point `keystore/debug` at the standard `~/.android/debug.keystore` (user `androiddebugkey`, password `android`) — no need to generate a new one.
 4. Project Settings needs `rendering/textures/vram_compression/import_etc2_astc` enabled (Android export requires it; already set in `project.godot`).
-5. Export, or from the command line: `Godot --headless --path godot --export-debug "Android Debug" build/neon-tether-debug.apk`.
+5. Enable **Advanced Options** on the preset and turn on the **Vibrate** permission (`permissions/vibrate=true` in `export_presets.cfg`) — without it, the game's crash/collect haptics (`_haptic()` in `gameplay.gd`) fail silently on-device with `SecurityException: VIBRATE permission not found` in logcat. Godot's default (non-advanced) preset doesn't request it. See `BUGS.md` BUG-010.
+6. Export, or from the command line: `Godot --headless --path godot --export-debug "Android Debug" build/neon-tether-debug.apk`.
 
 Verified end-to-end in this environment: the APK builds, signs (`apksigner verify` passes), installs, and was actually **played** on an Android emulator with real GPU acceleration (`-gpu host`, this machine's Intel UHD 620) — menu, navigation, and a full gameplay run all render and play correctly, with best score persisting across runs. The project's renderer is set to `gl_compatibility`; the `mobile` (Vulkan) renderer kept failing to present specifically on this emulator's Vulkan swapchain, on both software and hardware GPU backends — see `project_management/BUGS.md` ENV-001 for the full investigation. Still worth a real-device pass before shipping.
 
